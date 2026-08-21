@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Custom dark scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+::-webkit-scrollbar-thumb {
+  background: #222222;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #333333;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media print {
+  body {
+    background-color: white !important;
+    color: black !important;
+  }
+  header, footer, button, #emergency-sos-header-btn, nav, #doctor-summary-card > div:first-child {
+    display: none !important;
+  }
+  #doctor-summary-backdrop {
+    background: white !important;
+    position: static !important;
+  }
+  #doctor-summary-card {
+    border: none !important;
+    box-shadow: none !important;
+    max-width: 100% !important;
+    background: white !important;
+    color: black !important;
+  }
+}

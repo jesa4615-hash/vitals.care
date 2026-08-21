@@ -1,0 +1,6 @@
+{
+  "name": "AuraCare Health Assistant",
+  "description": "An AI-powered mobile health assistant that helps users understand symptoms, explore potential causes, access first-aid steps, and receive safe triage guidance with clear medical disclaimers.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
