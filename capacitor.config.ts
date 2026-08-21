@@ -4,20 +4,18 @@ const config: CapacitorConfig = {
   appId: 'com.auracare.healthassistant',
   appName: 'AuraCare Health Assistant',
   webDir: 'dist',
-
-  android: {
-    allowMixedContent: false,
-  },
+  bundledWebRuntime: false,
 
   server: {
     androidScheme: 'https',
+    cleartext: false,
   },
 
-  plugins: {
-    SplashScreen: {
-      launchShowDuration: 0
-    }
-  }
+  android: {
+    allowMixedContent: false,
+    captureInput: true,
+    webContentsDebuggingEnabled: false,
+  },
 };
 
 export default config;
