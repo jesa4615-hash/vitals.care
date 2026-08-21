@@ -2,6 +2,7 @@ name: Build AuraCare Android APK
 
 on:
   workflow_dispatch:
+
   push:
     branches:
       - main
@@ -16,195 +17,194 @@ concurrency:
 
 jobs:
   build-android:
-    name: Build AuraCare APK
+    name: Build AuraCare Android APK
     runs-on: ubuntu-latest
 
     env:
       NODE_ENV: production
 
     steps:
-      # ---------------------------------------------------------
-      # 1. Checkout
-      # ---------------------------------------------------------
+
+      # --------------------------------------------------
+      # Checkout
+      # --------------------------------------------------
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ---------------------------------------------------------
-      # 2. Node.js 24
-      # ---------------------------------------------------------
+
+      # --------------------------------------------------
+      # Node.js 24
+      # --------------------------------------------------
+
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
           node-version: 24
 
-      # ---------------------------------------------------------
-      # 3. Java 17 for Android/Gradle
-      # ---------------------------------------------------------
+
+      # --------------------------------------------------
+      # Java 17
+      # --------------------------------------------------
+
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
-      # ---------------------------------------------------------
-      # 4. Android SDK
-      # ---------------------------------------------------------
+
+      # --------------------------------------------------
+      # Android SDK
+      # --------------------------------------------------
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # ---------------------------------------------------------
-      # 5. Install npm dependencies
-      #
-      # Uses npm ci ONLY when package-lock.json exists.
-      # Otherwise falls back to npm install.
-      # ---------------------------------------------------------
+
+      # --------------------------------------------------
+      # Install dependencies
+      # --------------------------------------------------
+
       - name: Install dependencies
-        shell: bash
+        run: npm install
+
+
+      # --------------------------------------------------
+      # Verify environment
+      # --------------------------------------------------
+
+      - name: Verify environment
         run: |
-          set -e
-
-          if [ -f package-lock.json ]; then
-            echo "package-lock.json found."
-            npm ci
-          else
-            echo "No package-lock.json found."
-            echo "Using npm install."
-            npm install
-          fi
-
-      # ---------------------------------------------------------
-      # 6. Ensure Capacitor is installed
-      # ---------------------------------------------------------
-      - name: Install Capacitor
-        shell: bash
-        run: |
-          set -e
-
-          if npm list @capacitor/core >/dev/null 2>&1; then
-            echo "Capacitor already installed."
-          else
-            npm install @capacitor/core @capacitor/android
-          fi
-
-          if npm list @capacitor/cli >/dev/null 2>&1; then
-            echo "Capacitor CLI already installed."
-          else
-            npm install --save-dev @capacitor/cli
-          fi
-
-      # ---------------------------------------------------------
-      # 7. Verify Node/npm
-      # ---------------------------------------------------------
-      - name: Verify Node environment
-        run: |
+          echo "Node:"
           node --version
+
+          echo "NPM:"
           npm --version
+
+          echo "Java:"
+          java -version
+
+          echo "Capacitor:"
           npx cap --version
 
-      # ---------------------------------------------------------
-      # 8. Build Vite application
-      # ---------------------------------------------------------
+
+      # --------------------------------------------------
+      # Build web application
+      # --------------------------------------------------
+
       - name: Build web application
         run: npm run build
 
-      # ---------------------------------------------------------
-      # 9. Validate web output
-      # ---------------------------------------------------------
+
+      # --------------------------------------------------
+      # Verify Vite output
+      # --------------------------------------------------
+
       - name: Verify web build
         shell: bash
         run: |
           set -e
 
           if [ ! -d "dist" ]; then
-            echo "ERROR: dist directory was not created."
+            echo "ERROR: dist directory does not exist."
             exit 1
           fi
 
           if [ ! -f "dist/index.html" ]; then
-            echo "ERROR: dist/index.html was not created."
+            echo "ERROR: dist/index.html does not exist."
             exit 1
           fi
 
-          echo "Web build verified successfully."
-          find dist -maxdepth 2 -type f | head -50
+          echo "Web build successful."
 
-      # ---------------------------------------------------------
-      # 10. Check Capacitor configuration
-      # ---------------------------------------------------------
+          find dist -maxdepth 2 -type f -print
+
+
+      # --------------------------------------------------
+      # Verify Capacitor config
+      # --------------------------------------------------
+
       - name: Verify Capacitor configuration
         shell: bash
         run: |
           set -e
 
-          if [ -f capacitor.config.ts ]; then
-            echo "Found capacitor.config.ts"
-          elif [ -f capacitor.config.json ]; then
-            echo "Found capacitor.config.json"
-          else
-            echo "ERROR: No Capacitor configuration found."
-            echo "Create capacitor.config.ts in the project root."
-            exit 1
-          fi
+          test -f capacitor.config.ts
 
-      # ---------------------------------------------------------
-      # 11. Create Android platform if missing
-      # ---------------------------------------------------------
-      - name: Prepare Android platform
+          echo "capacitor.config.ts found."
+
+
+      # --------------------------------------------------
+      # Create Android project
+      # --------------------------------------------------
+
+      - name: Add Android platform
         shell: bash
         run: |
           set -e
 
           if [ -d "android" ]; then
-            echo "Android platform already exists."
+            echo "Android project already exists."
           else
-            echo "Android platform does not exist."
             npx cap add android
           fi
 
-      # ---------------------------------------------------------
-      # 12. Sync web application into Android
-      # ---------------------------------------------------------
-      - name: Capacitor sync
+
+      # --------------------------------------------------
+      # Capacitor sync
+      # --------------------------------------------------
+
+      - name: Sync Capacitor
         run: npx cap sync android
 
-      # ---------------------------------------------------------
-      # 13. Validate Android Gradle wrapper
-      # ---------------------------------------------------------
-      - name: Validate Gradle project
+
+      # --------------------------------------------------
+      # Check Android project
+      # --------------------------------------------------
+
+      - name: Validate Android project
         working-directory: android
         shell: bash
         run: |
           set -e
 
-          if [ ! -f "./gradlew" ]; then
-            echo "ERROR: Gradle wrapper not found."
+          if [ ! -f gradlew ]; then
+            echo "ERROR: gradlew does not exist."
             exit 1
           fi
 
-          chmod +x ./gradlew
+          chmod +x gradlew
 
           ./gradlew --version
 
-      # ---------------------------------------------------------
-      # 14. Build Debug APK
-      # ---------------------------------------------------------
+
+      # --------------------------------------------------
+      # Build APK
+      # --------------------------------------------------
+
       - name: Build Debug APK
         working-directory: android
+        shell: bash
         run: |
+          set -e
+
           ./gradlew assembleDebug \
             --no-daemon \
             --stacktrace \
             --warning-mode all
 
-      # ---------------------------------------------------------
-      # 15. Verify APK
-      # ---------------------------------------------------------
-      - name: Verify APK
+
+      # --------------------------------------------------
+      # Find APK
+      # --------------------------------------------------
+
+      - name: Find generated APK
         shell: bash
         run: |
           set -e
 
-          echo "Searching for APK files..."
+          echo "Generated APK files:"
 
           find android/app/build/outputs/apk \
             -type f \
@@ -216,19 +216,43 @@ jobs:
             -name "*.apk" | wc -l)
 
           if [ "$APK_COUNT" -eq 0 ]; then
-            echo "ERROR: No APK was generated."
+            echo "ERROR: APK was not generated."
             exit 1
           fi
 
-          echo "APK successfully generated."
+          echo "APK count: $APK_COUNT"
 
-      # ---------------------------------------------------------
-      # 16. Upload APK
-      # ---------------------------------------------------------
-      - name: Upload APK artifact
+
+      # --------------------------------------------------
+      # Rename APK
+      # --------------------------------------------------
+
+      - name: Prepare APK
+        shell: bash
+        run: |
+          set -e
+
+          mkdir -p release
+
+          APK=$(find android/app/build/outputs/apk \
+            -type f \
+            -name "*.apk" \
+            | head -n 1)
+
+          cp "$APK" \
+            "release/AuraCare-Health-Assistant-debug.apk"
+
+          ls -lh release/
+
+
+      # --------------------------------------------------
+      # Upload APK
+      # --------------------------------------------------
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: auracare-health-assistant-apk
-          path: android/app/build/outputs/apk/**/*.apk
+          name: AuraCare-Health-Assistant
+          path: release/AuraCare-Health-Assistant-debug.apk
           if-no-files-found: error
           retention-days: 30
